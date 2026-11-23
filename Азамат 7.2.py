@@ -1,126 +1,170 @@
 import random
-import turtle as tr
 import math
+import turtle as tr
 
 
-def draw_target_axes(R):
+def draw_dashed_line(x1, y1, x2, y2, dashes=15):
+    """Рисует пунктирную линию от (x1, y1) до (x2, y2)."""
+    tr.penup()
+    for i in range(dashes):
+        t1 = i / dashes
+        t2 = (i + 0.5) / dashes
+        tr.goto(x1 + (x2 - x1) * t1, y1 + (y2 - y1) * t1)
+        tr.pendown()
+        tr.goto(x1 + (x2 - x1) * t2, y1 + (y2 - y1) * t2)
+        tr.penup()
+
+
+def main():
+    # 1. Настройка графического окна
+    tr.setup(width=800, height=800)
+    tr.title("Метод Монте-Карло: Фигура №2")
+    tr.bgcolor("white")
+    tr.tracer(0)
+
+    # Задаем радиус R
+    R = 15.0
+
+    # Масштаб окна [-R - margin, R + margin]
+    margin = 5
+    tr.setworldcoordinates(-R - margin, -R - margin, R + margin, R + margin)
+
+    tr.ht()
+    tr.penup()
+
+    # 2. Рисуем оси координат
     tr.pencolor("black")
     tr.pensize(2)
 
     # Ось X
-    tr.penup()
-    tr.goto(-R, 0)
+    tr.goto(-R - 2, 0)
     tr.pendown()
-    tr.goto(R, 0)
-    tr.stamp()
+    tr.goto(R + 2, 0)
+    tr.penup()
+    tr.goto(R + 2.5, -0.5)
+    tr.write("X", font=("Arial", 12, "bold"))
 
     # Ось Y
-    tr.penup()
-    tr.goto(0, -R)
+    tr.goto(0, -R - 2)
     tr.pendown()
-    tr.goto(0, R)
-    tr.stamp()
-
-    # Контур мишени (для наглядности)
+    tr.goto(0, R + 2)
     tr.penup()
-    tr.pencolor("gray")
-    tr.pensize(1)
+    tr.goto(0.5, R + 2)
+    tr.write("Y", font=("Arial", 12, "bold"))
 
-    # 1. Четверть круга в левой верхней части
-    tr.goto(0, -R)  # Начинаем с нижней точки, чтобы turtle правильно нарисовал дугу
-    tr.pendown()
-    tr.circle(R,
-              90)  # Рисуем дугу от (0,-R) до (-R,0)?? На самом деле turtle.circle(R, 90) от (0,-R) нарисует от (0,-R) до (-R,0)
-
-    # Для точности нарисуем дугу от (0,0) влево-вверх:
-    tr.penup()
-    tr.goto(0, 0)
-    tr.setheading(180)  # Смотрим влево
-    tr.pendown()
-    tr.circle(R, -90)  # Рисуем дугу влево-вверх (отрицательный угол для правильного направления)
-
-    # 2. Треугольник в правой нижней части
-    tr.penup()
-    tr.goto(0, 0)
-    tr.pendown()
-    tr.goto(R, 0)  # Верхняя правая вершина
-    tr.goto(R / 2, -R)  # Нижняя вершина (по рисунку)
-    tr.goto(0, 0)  # Возвращаемся в центр
-
-    tr.penup()
-
-
-def main():
-    # Настройка окна
-    tr.setup(width=700, height=700)
-    tr.title("Лабораторная №7. Задание 2: Мишень Монте-Карло")
-
-    # Вводим радиус
-    R = 10.0
-
-    # Масштабируем график (добавим отступ, чтобы все влезло)
-    margin = 2
-    tr.setworldcoordinates(-R - margin, -R - margin, R + margin, R + margin)
-
-    tr.speed(0)
-    tr.ht()
-    tr.shape("circle")
-    tr.shapesize(0.2)
-    tr.penup()
-
-    # Рисуем оси и контур
-    draw_target_axes(R)
-
-    shots_count = 10000
+    # 3. Метод Монте-Карло
+    shots_count = 20000
     hits = 0
 
-    for i in range(shots_count):
-        # Генерируем точку
+    for i in range(1, shots_count + 1):
         x = random.uniform(-R, R)
         y = random.uniform(-R, R)
 
-        is_hit = False
+        # Условие 1: Четверть круга во II четверти (x <= 0, y >= 0, x^2 + y^2 <= R^2)
+        in_sector = (x <= 0) and (y >= 0) and (x ** 2 + y ** 2 <= R ** 2)
 
-        # Проверка для левой верхней четверти (Круг)
-        if x <= 0 and y >= 0 and (x ** 2 + y ** 2) <= R ** 2:
-            is_hit = True
+        # Условие 2: Треугольник в IV четверти с вершинами (0,0), (R,0), (R/2, -R)
+        # Левая сторона: y >= -2x (при 0 <= x <= R/2)
+        # Правая сторона: y >= 2x - 2R (при R/2 <= x <= R)
+        in_triangle = (0 <= x <= R) and (y <= 0) and (y >= -2 * x) and (y >= 2 * x - 2 * R)
 
-        # Проверка для правого нижнего треугольника
-        # Уравнения сторон треугольника: y = -2x (левая сторона от (0,0) до (R/2,-R))
-        #                               y = 2x - 2R (правая сторона от (R,0) до (R/2,-R))
-        elif x >= 0 and y <= 0:
-            if y >= -2 * x and y >= 2 * x - 2 * R:
-                is_hit = True
+        is_hit = in_sector or in_triangle
 
-        # Отрисовка
         tr.goto(x, y)
         if is_hit:
-            tr.dot(4, "green")
+            tr.dot(3, "dimgray")
             hits += 1
         else:
-            tr.dot(2, "lightgray")
+            tr.dot(3, "lightgray")
 
-    # Вывод результатов
-    tr.goto(-R, R + 1)
+        if i % 1000 == 0:
+            tr.update()
+
+    # 4. Рисуем контуры фигуры поверх точек
     tr.pencolor("black")
-    tr.write(f"Выстрелов: {shots_count}. Попаданий: {hits}", font=("Arial", 14, "bold"))
+    tr.pensize(2)
 
-    # Оценка площади (S_мишени = S_квадрата * (hits/N))
+    # Контур квадрата выборки [-R, R] (тонкой рамкой для наглядности)
+    tr.pencolor("gray")
+    tr.pensize(1)
+    tr.goto(-R, -R)
+    tr.pendown()
+    tr.goto(R, -R)
+    tr.goto(R, R)
+    tr.goto(-R, R)
+    tr.goto(-R, -R)
+    tr.penup()
+
+    # Контур четверти круга во II четверти
+    tr.pencolor("black")
+    tr.pensize(2)
+    tr.goto(0, 0)
+    tr.pendown()
+    tr.goto(0, R)
+    tr.setheading(180)
+    tr.circle(R, 90)
+    tr.goto(0, 0)
+    tr.penup()
+
+    # Контур треугольника в IV четверти
+    tr.goto(0, 0)
+    tr.pendown()
+    tr.goto(R, 0)
+    tr.goto(R / 2, -R)
+    tr.goto(0, 0)
+    tr.penup()
+
+    # Вспомогательные пунктирные линии и подписи как на чертеже
+    tr.pencolor("black")
+    tr.pensize(1)
+    draw_dashed_line(R / 2, 0, R / 2, -R, dashes=12)
+    draw_dashed_line(0, -R, R / 2, -R, dashes=8)
+
+    tr.goto(R / 2 - 0.8, 0.5)
+    tr.write("R/2", font=("Arial", 10, "bold"))
+    tr.goto(R - 0.3, 0.5)
+    tr.write("R", font=("Arial", 10, "bold"))
+    tr.goto(-1.8, -R - 0.4)
+    tr.write("-R", font=("Arial", 10, "bold"))
+
+    # 5. Расчет и вывод результатов
     S_square = (2 * R) ** 2
-    S_target = S_square * (hits / shots_count)
+    S_mc = S_square * (hits / shots_count)
 
-    # Точная аналитическая площадь (для сравнения)
-    S_exact = R ** 2 * (math.pi / 4 + 0.5)
+    # Точная площадь: четверть круга (pi * R^2 / 4) + треугольник (0.5 * R * R)
+    S_real = (math.pi * R ** 2) / 4 + 0.5 * R ** 2
+    error_percent = abs(S_real - S_mc) / S_real * 100
 
-    tr.goto(-R, R - 0.8)
-    tr.write(f"Оценка площади: {S_target:.2f}", font=("Arial", 12, "normal"))
-    tr.goto(-R, R - 1.6)
-    tr.write(f"Точная площадь: {S_exact:.2f}", font=("Arial", 12, "normal"))
+    # Вывод текста в свободном правом верхнем углу (I четверть)
+    text_x = 1.5
+    tr.goto(text_x, R - 1.5)
+    tr.pencolor("black")
+    tr.write(f"Выстрелов: {shots_count}", font=("Arial", 10, "bold"))
 
-    print(f"--- Завершено ---")
-    print(f"Точек: {shots_count}, Попаданий: {hits}")
-    print(f"Площадь мишени (Монте-Карло): {S_target:.4f}")
-    print(f"Точная площадь: {S_exact:.4f}")
+    tr.goto(text_x, R - 3.0)
+    tr.write(f"Попаданий: {hits}", font=("Arial", 10, "bold"))
+
+    tr.goto(text_x, R - 4.5)
+    tr.pencolor("darkgreen")
+    tr.write(f"S (MC): {S_mc:.2f}", font=("Arial", 10, "bold"))
+
+    tr.goto(text_x, R - 6.0)
+    tr.pencolor("blue")
+    tr.write(f"S (Точная): {S_real:.2f}", font=("Arial", 10, "bold"))
+
+    tr.goto(text_x, R - 7.5)
+    tr.pencolor("red")
+    tr.write(f"Погрешность: {error_percent:.2f}%", font=("Arial", 10, "bold"))
+
+    tr.update()
+
+    print("--- Метод Монте-Карло для фигуры №2 ---")
+    print(f"Радиус R = {R}")
+    print(f"Всего точек: {shots_count}")
+    print(f"Попаданий: {hits}")
+    print(f"Площадь (Монте-Карло): {S_mc:.4f}")
+    print(f"Точная площадь: {S_real:.4f}")
+    print(f"Погрешность: {error_percent:.2f}%")
 
     tr.done()
 
